@@ -67,7 +67,7 @@ def load_config():
             "client_secret": str(st.secrets["installed"]["client_secret"]),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://accounts.google.com/o/oauth2/token",
-            "redirect_uris": ["https://ultimate-gsc-analytics-seo-dashboard.streamlit.app/"]
+            "redirect_uris": ["https://localhost:8501"]
         }
     }
     return client_config
