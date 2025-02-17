@@ -41,11 +41,11 @@ def init_session_state():
 def setup_page():
     """Configure Streamlit page settings"""
     st.set_page_config(
-        page_title="GSC Analytics Dashboard",
+        page_title="Ultimate GSC & GA4 SEO Dashboard",
         page_icon="📊",
         layout="wide"
     )
-    st.title("📊 GSC Analytics Dashboard")
+    st.title("📊 Ultimate GSC & GA4 SEO Dashboard")
     st.markdown("---")
 
 def load_google_credentials():
