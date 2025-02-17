@@ -47,7 +47,7 @@ def init_session_state():
         st.session_state.comparison_periods = 1
 
 def setup_page():
-    """Configure Streamlit page settings"""
+    """Configure page settings"""
     st.set_page_config(
         page_title="Ultimate GSC & Analytics SEO Dashboard",
         page_icon="📊",
@@ -191,7 +191,16 @@ def main():
         
         # Google Authentication
         if st.session_state.credentials is None:
-            st.info("Please log in with your Google account to access Search Console data.")
+            st.info("""
+            ### 🔐 Google Search Console Authentication
+            
+            Please log in with your Google account that has access to Search Console.
+            
+            **Note**: If you need to use a different Google account:
+            1. Click the "Login with Google" button
+            2. Click on "Use another account" in the Google login screen
+            3. Sign in with the account that has GSC access
+            """)
             
             if st.button("🔐 Login with Google"):
                 client_config = load_google_credentials()
@@ -202,16 +211,37 @@ def main():
                             scopes=SCOPES,
                             redirect_uri=client_config["installed"]["redirect_uris"][0]
                         )
-                        auth_url, _ = flow.authorization_url(prompt="consent")
+                        # Add prompt parameter to force account selection
+                        auth_url, _ = flow.authorization_url(
+                            prompt="select_account",  # Forces account selection
+                            access_type="offline",    # Gets refresh token
+                            include_granted_scopes="true"  # Includes previously granted scopes
+                        )
                         st.session_state.flow = flow
-                        st.markdown(f'[Click here to login with Google]({auth_url})')
+                        
+                        st.markdown("""
+                        #### Click below to login with Google:
+                        *If you need to use a different account, click "Use another account" on the Google login screen.*
+                        """)
+                        st.markdown(f'[Login with Google]({auth_url})')
+                        
                     except Exception as e:
                         st.error(f"Authentication error: {str(e)}")
+                        st.info("If you're having trouble, try clearing your browser cookies and cache.")
         else:
             st.success("✓ Successfully logged in")
-            if st.button("Logout"):
-                st.session_state.credentials = None
-                st.experimental_rerun()
+            
+            # Show logout option with additional info
+            with st.expander("⚙️ Account Settings"):
+                st.info("If you need to switch to a different Google account, click the Logout button below.")
+                if st.button("🚪 Logout"):
+                    st.session_state.credentials = None
+                    st.session_state.selected_property = None
+                    # Clear other relevant session state variables
+                    for key in ['current_urls', 'comparison_enabled', 'sitemap_enabled', 'url_inspection_enabled']:
+                        if key in st.session_state:
+                            del st.session_state[key]
+                    st.experimental_rerun()
 
             # Optional Features
             st.subheader("Analysis Options")
