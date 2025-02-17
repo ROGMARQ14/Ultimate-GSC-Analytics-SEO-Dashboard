@@ -1,4 +1,4 @@
-# GSC Analytics Dashboard 📊
+# Ultimate GSC & GA4 SEO Dashboard 📊
 
 A powerful Streamlit-based dashboard for Google Search Console data analysis with advanced comparison features.
 
