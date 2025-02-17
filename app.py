@@ -179,8 +179,7 @@ def main():
     authenticate()
     
     # Handle OAuth callback
-    query_params = st.experimental_get_query_params()
-    auth_code = query_params.get("code", [None])[0]
+    auth_code = st.query_params.get("code", None)
 
     if auth_code and not st.session_state.get('credentials'):
         client_config = load_config()
