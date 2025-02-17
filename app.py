@@ -57,25 +57,55 @@ def setup_page():
     st.title("📊 Ultimate GSC & Analytics SEO Dashboard")
     st.markdown("---")
 
-def load_config():
-    """
-    Loads the Google API client configuration from Streamlit secrets.
-    Returns a dictionary with the client configuration for OAuth.
-    """
-    client_config = {
-        "installed": {
-            "client_id": str(st.secrets["installed"]["client_id"]),
-            "client_secret": str(st.secrets["installed"]["client_secret"]),
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://accounts.google.com/o/oauth2/token",
-            "redirect_uris": (
-                ["http://localhost:8501"]
-                if False
-                else [str(st.secrets["installed"]["redirect_uris"][0])]
-            ),
-        }
-    }
-    return client_config
+def authenticate():
+    """Handle Google OAuth authentication"""
+    if not st.session_state.credentials:
+        st.info("""
+        ### 🔐 Google Search Console Authentication
+        
+        Please log in with your Google account that has access to Search Console.
+        You'll be redirected to Google's login page where you can select your account.
+        """)
+        
+        if st.button("🔐 Login with Google"):
+            try:
+                flow = Flow.from_client_config(
+                    {
+                        "web": {
+                            "client_id": "1084465226269-2q3gn0u7s3p18e1kqh5ljr1fu8dh57lf.apps.googleusercontent.com",
+                            "client_secret": "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",
+                            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                            "token_uri": "https://oauth2.googleapis.com/token",
+                            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                            "redirect_uris": ["http://localhost:8501"]
+                        }
+                    },
+                    scopes=["https://www.googleapis.com/auth/webmasters"],
+                    redirect_uri="http://localhost:8501"
+                )
+                auth_url, _ = flow.authorization_url(
+                    access_type='offline',
+                    include_granted_scopes='true',
+                    prompt='consent'
+                )
+                st.markdown(f'[Click here to login with Google]({auth_url})')
+                st.session_state.flow = flow
+            except Exception as e:
+                st.error(f"Authentication error: {str(e)}")
+                st.info("Please make sure you have the correct permissions for Google Search Console.")
+    else:
+        st.success("✓ Successfully logged in")
+        
+        with st.expander("⚙️ Account Settings"):
+            st.info("If you need to switch to a different Google account, click the Logout button below.")
+            if st.button("🚪 Logout"):
+                st.session_state.credentials = None
+                st.session_state.selected_property = None
+                # Clear other relevant session state variables
+                for key in ['current_urls', 'comparison_enabled', 'sitemap_enabled', 'url_inspection_enabled']:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                st.experimental_rerun()
 
 def init_oauth_flow(client_config):
     """
@@ -128,23 +158,20 @@ def main():
     setup_page()
     init_session_state()
     
-    # Authentication setup
-    client_config = load_config()
-    if 'auth_flow' not in st.session_state or 'auth_url' not in st.session_state:
-        st.session_state.auth_flow, st.session_state.auth_url = google_auth(client_config)
-
+    authenticate()
+    
     # Handle OAuth callback
     query_params = st.experimental_get_query_params()
     auth_code = query_params.get("code", [None])[0]
 
     if auth_code and not st.session_state.get('credentials'):
-        st.session_state.auth_flow.fetch_token(code=auth_code)
-        st.session_state.credentials = st.session_state.auth_flow.credentials
+        st.session_state.flow.fetch_token(code=auth_code)
+        st.session_state.credentials = st.session_state.flow.credentials
         st.experimental_rerun()
 
     # Show sign-in or main app
     if not st.session_state.get('credentials'):
-        show_google_sign_in(st.session_state.auth_url)
+        st.stop()
     else:
         # Sidebar for authentication and settings
         with st.sidebar:
@@ -181,7 +208,19 @@ def main():
         
         # Main content
         # Initialize GSC API
-        gsc_api = GSCApi(auth_search_console(client_config, st.session_state.credentials))
+        gsc_api = GSCApi(auth_search_console(
+            {
+                "web": {
+                    "client_id": "1084465226269-2q3gn0u7s3p18e1kqh5ljr1fu8dh57lf.apps.googleusercontent.com",
+                    "client_secret": "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",
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                    "redirect_uris": ["http://localhost:8501"]
+                }
+            },
+            st.session_state.credentials
+        ))
         
         # Property Selection
         try:
