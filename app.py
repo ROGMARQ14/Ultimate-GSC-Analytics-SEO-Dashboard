@@ -67,12 +67,17 @@ def load_config():
             "client_secret": str(st.secrets["installed"]["client_secret"]),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://accounts.google.com/o/oauth2/token",
-            "redirect_uris": ["https://localhost:8501"]
+            "redirect_uris": (
+                ["http://localhost:8501"]
+                if IS_LOCAL
+                else [str(st.secrets["installed"]["redirect_uris"][0])]
+            ),
         }
     }
     return client_config
 
 def init_oauth_flow(client_config):
+    
     """
     Initialises the OAuth flow for Google API authentication using the client configuration.
     Sets the necessary scopes and returns the configured Flow object.
