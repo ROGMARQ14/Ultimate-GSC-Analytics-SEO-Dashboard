@@ -1,16 +1,16 @@
 import streamlit as st
-import pandas as pd
-import datetime
-from dateutil.relativedelta import relativedelta
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
-import json
+import datetime
+from dateutil.relativedelta import relativedelta
+import pandas as pd
+import plotly.express as px
 from pathlib import Path
 import base64
 import io
 from gsc_api import GSCApi
 from url_manager import URLManager
-from data_visualizer import DataVisualizer
+from data_viz import DataVisualizer
 from site_analyzer import SiteAnalyzer
 
 # Configuration and Constants
@@ -49,11 +49,11 @@ def init_session_state():
 def setup_page():
     """Configure Streamlit page settings"""
     st.set_page_config(
-        page_title="GSC Analytics Dashboard",
+        page_title="Ultimate GSC & Analytics SEO Dashboard",
         page_icon="📊",
         layout="wide"
     )
-    st.title("📊 GSC Analytics Dashboard")
+    st.title("📊 Ultimate GSC & Analytics SEO Dashboard")
     st.markdown("---")
 
 def load_google_credentials():
