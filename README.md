@@ -1,12 +1,12 @@
-# GSC Analytics Dashboard 📊
+# Ultimate GSC & Analytics SEO Dashboard 📊
 
-A powerful Streamlit-based dashboard for Google Search Console data analysis with advanced comparison features.
+A powerful Streamlit-based dashboard for comprehensive Google Search Console analysis and SEO insights.
 
 ## Features 🚀
 
 ### Core Functionality
 - 🔐 Secure Google OAuth Authentication
-- 📊 Comprehensive GSC Data Retrieval
+- 📊 Comprehensive GSC Data Analysis
 - 📈 Advanced Period Comparisons
 - 📋 URL List Management
 - 📤 Data Export Capabilities
