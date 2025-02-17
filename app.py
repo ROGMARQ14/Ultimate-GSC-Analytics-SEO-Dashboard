@@ -59,17 +59,20 @@ def setup_page():
 
 def load_config():
     """
+    Loads the Google API client configuration from Streamlit secrets.
     Returns a dictionary with the client configuration for OAuth.
     """
     client_config = {
         "installed": {
-            "client_id": "PLACEHOLDER",  # Will be replaced during OAuth flow
-            "project_id": "PLACEHOLDER",
+            "client_id": str(st.secrets["installed"]["client_id"]),
+            "client_secret": str(st.secrets["installed"]["client_secret"]),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://accounts.google.com/o/oauth2/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_secret": "PLACEHOLDER",  # Will be replaced during OAuth flow
-            "redirect_uris": ["http://localhost:8501"]
+            "redirect_uris": (
+                ["http://localhost:8501"]
+                if IS_LOCAL
+                else [str(st.secrets["installed"]["redirect_uris"][0])]
+            ),
         }
     }
     return client_config
