@@ -1,6 +1,6 @@
 import streamlit as st
-from google_auth_oauthlib.flow import InstalledAppFlow
 from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 import datetime
 from dateutil.relativedelta import relativedelta
@@ -69,12 +69,25 @@ def authenticate():
         
         if st.button("🔐 Login with Google"):
             try:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'client_secrets.json',
-                    scopes=SCOPES
+                flow = Flow.from_client_config(
+                    {
+                        "web": {
+                            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                            "token_uri": "https://oauth2.googleapis.com/token",
+                            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                            "redirect_uris": ["https://ultimate-gsc-analytics-seo-dashboard.streamlit.app/_stcore/authorize"]
+                        }
+                    },
+                    scopes=SCOPES,
+                    redirect_uri="https://ultimate-gsc-analytics-seo-dashboard.streamlit.app/_stcore/authorize"
                 )
-                st.session_state.credentials = flow.run_local_server(port=8501)
-                st.experimental_rerun()
+                auth_url, _ = flow.authorization_url(
+                    access_type='offline',
+                    include_granted_scopes='true',
+                    prompt='consent'
+                )
+                st.markdown(f'[Click here to login with Google]({auth_url})')
+                st.session_state.flow = flow
             except Exception as e:
                 st.error(f"Authentication error: {str(e)}")
                 st.info("Please make sure you have the correct permissions for Google Search Console.")
