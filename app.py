@@ -59,51 +59,61 @@ def setup_page():
 
 def authenticate():
     """Handle Google OAuth authentication"""
-    if not st.session_state.credentials:
-        st.info("""
-        ### 🔐 Google Search Console Authentication
-        
-        Please log in with your Google account that has access to Search Console.
-        You'll be redirected to Google's login page where you can select your account.
-        """)
-        
-        if st.button("🔐 Login with Google"):
-            try:
-                flow = Flow.from_client_config(
-                    {
-                        "web": {
-                            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                            "token_uri": "https://oauth2.googleapis.com/token",
-                            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                            "redirect_uris": ["https://ultimate-gsc-analytics-seo-dashboard.streamlit.app/_stcore/authorize"]
-                        }
-                    },
-                    scopes=SCOPES,
-                    redirect_uri="https://ultimate-gsc-analytics-seo-dashboard.streamlit.app/_stcore/authorize"
-                )
-                auth_url, _ = flow.authorization_url(
-                    access_type='offline',
-                    include_granted_scopes='true',
-                    prompt='consent'
-                )
-                st.markdown(f'[Click here to login with Google]({auth_url})')
-                st.session_state.flow = flow
-            except Exception as e:
-                st.error(f"Authentication error: {str(e)}")
-                st.info("Please make sure you have the correct permissions for Google Search Console.")
-    else:
-        st.success("✓ Successfully logged in")
-        
-        with st.expander("⚙️ Account Settings"):
-            st.info("If you need to switch to a different Google account, click the Logout button below.")
-            if st.button("🚪 Logout"):
-                st.session_state.credentials = None
-                st.session_state.selected_property = None
-                # Clear other relevant session state variables
-                for key in ['current_urls', 'comparison_enabled', 'sitemap_enabled', 'url_inspection_enabled']:
-                    if key in st.session_state:
-                        del st.session_state[key]
-                st.experimental_rerun()
+    def load_config():
+        client_config = {
+            "installed": {
+                "client_id": str(st.secrets["installed"]["client_id"]),
+                "client_secret": str(st.secrets["installed"]["client_secret"]),
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://accounts.google.com/o/oauth2/token",
+                "redirect_uris": (
+                    ["http://localhost:8501"]
+                if IS_LOCAL
+                else [str(st.secrets["installed"]["redirect_uris"][0])]
+            ),
+        }
+    }
+    return client_config
+
+
+def init_oauth_flow(client_config):
+    """
+    Initialises the OAuth flow for Google API authentication using the client configuration.
+    Sets the necessary scopes and returns the configured Flow object.
+    """
+    scopes = ["https://www.googleapis.com/auth/webmasters"]
+    return Flow.from_client_config(
+        client_config,
+        scopes=scopes,
+        redirect_uri=client_config["installed"]["redirect_uris"][0],
+    )
+
+
+def google_auth(client_config):
+    """
+    Starts the Google authentication process using OAuth.
+    Generates and returns the OAuth flow and the authentication URL.
+    """
+    flow = init_oauth_flow(client_config)
+    auth_url, _ = flow.authorization_url(prompt="consent")
+    return flow, auth_url
+
+
+def auth_search_console(client_config, credentials):
+    """
+    Authenticates the user with the Google Search Console API using provided credentials.
+    Returns an authenticated searchconsole client.
+    """
+    token = {
+        "token": credentials.token,
+        "refresh_token": credentials.refresh_token,
+        "token_uri": credentials.token_uri,
+        "client_id": credentials.client_id,
+        "client_secret": credentials.client_secret,
+        "scopes": credentials.scopes,
+        "id_token": getattr(credentials, "id_token", None),
+    }
+    return searchconsole.authenticate(client_config=client_config, credentials=token)
 
 def get_date_ranges(days: int, periods: int = 1) -> list:
     """Generate date ranges for comparison"""
