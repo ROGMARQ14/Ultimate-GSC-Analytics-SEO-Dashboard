@@ -68,34 +68,51 @@ def load_config():
             "client_secret": str(st.secrets["installed"]["client_secret"]),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://accounts.google.com/o/oauth2/token",
-            "redirect_uris": [str(st.secrets["installed"]["redirect_uris"][0])],
+            "redirect_uris": (
+                ["http://localhost:8501"]
+                if False
+                else [str(st.secrets["installed"]["redirect_uris"][0])]
+            ),
         }
     }
     return client_config
+
+def init_oauth_flow(client_config):
+    """
+    Initialises the OAuth flow for Google API authentication using the client configuration.
+    Sets the necessary scopes and returns the configured Flow object.
+    """
+    scopes = ["https://www.googleapis.com/auth/webmasters"]
+    return Flow.from_client_config(
+        client_config,
+        scopes=scopes,
+        redirect_uri=client_config["installed"]["redirect_uris"][0],
+    )
 
 def google_auth(client_config):
     """
     Starts the Google authentication process using OAuth.
     Generates and returns the OAuth flow and the authentication URL.
     """
-    flow = Flow.from_client_config(
-        {
-            "web": {
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
-                "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-                "redirect_uris": ["https://ultimate-gsc-analytics-seo-dashboard.streamlit.app/_stcore/authorize"]
-            }
-        },
-        scopes=SCOPES,
-        redirect_uri="https://ultimate-gsc-analytics-seo-dashboard.streamlit.app/_stcore/authorize"
-    )
-    auth_url, _ = flow.authorization_url(
-        access_type='offline',
-        include_granted_scopes='true',
-        prompt='consent'
-    )
+    flow = init_oauth_flow(client_config)
+    auth_url, _ = flow.authorization_url(prompt="consent")
     return flow, auth_url
+
+def auth_search_console(client_config, credentials):
+    """
+    Authenticates the user with the Google Search Console API using provided credentials.
+    Returns an authenticated searchconsole client.
+    """
+    token = {
+        "token": credentials.token,
+        "refresh_token": credentials.refresh_token,
+        "token_uri": credentials.token_uri,
+        "client_id": credentials.client_id,
+        "client_secret": credentials.client_secret,
+        "scopes": credentials.scopes,
+        "id_token": getattr(credentials, "id_token", None),
+    }
+    return build('searchconsole', 'v1', credentials=token)
 
 def show_google_sign_in(auth_url):
     """
@@ -164,7 +181,7 @@ def main():
         
         # Main content
         # Initialize GSC API
-        gsc_api = GSCApi(st.session_state.credentials)
+        gsc_api = GSCApi(auth_search_console(client_config, st.session_state.credentials))
         
         # Property Selection
         try:
