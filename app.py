@@ -59,39 +59,16 @@ def setup_page():
 
 def load_config():
     """
-    Loads the Google API client configuration from Streamlit secrets.
     Returns a dictionary with the client configuration for OAuth.
     """
-    try:
-        client_config = {
-            "installed": {
-                "client_id": str(st.secrets["installed"]["client_id"]),
-                "client_secret": str(st.secrets["installed"]["client_secret"]),
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://accounts.google.com/o/oauth2/token",
-                "redirect_uris": (
-                    ["http://localhost:8501"]
-                    if IS_LOCAL
-                    else [str(st.secrets["installed"]["redirect_uris"][0])]
-                ),
-            }
+    client_config = {
+        "installed": {
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://accounts.google.com/o/oauth2/token",
+            "redirect_uris": ["http://localhost:8501"]
         }
-        return client_config
-    except KeyError:
-        st.error("""
-        ### ⚠️ Google OAuth Configuration Missing
-        
-        To use this app, you need to configure your Google OAuth credentials in the Streamlit secrets.
-        
-        Add this to your secrets.toml:
-        ```toml
-        [installed]
-        client_id = "YOUR_CLIENT_ID"
-        client_secret = "YOUR_CLIENT_SECRET"
-        redirect_uris = ["YOUR_REDIRECT_URI"]
-        ```
-        """)
-        st.stop()
+    }
+    return client_config
 
 def init_oauth_flow(client_config):
     """
@@ -105,7 +82,6 @@ def init_oauth_flow(client_config):
         redirect_uri=client_config["installed"]["redirect_uris"][0],
     )
 
-
 def google_auth(client_config):
     """
     Starts the Google authentication process using OAuth.
@@ -114,7 +90,6 @@ def google_auth(client_config):
     flow = init_oauth_flow(client_config)
     auth_url, _ = flow.authorization_url(prompt="consent")
     return flow, auth_url
-
 
 def auth_search_console(client_config, credentials):
     """
