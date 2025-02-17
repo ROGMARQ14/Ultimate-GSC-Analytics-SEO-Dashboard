@@ -1,5 +1,6 @@
 import streamlit as st
-from google_auth_oauthlib.flow import Flow
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 import datetime
 from dateutil.relativedelta import relativedelta
@@ -56,45 +57,40 @@ def setup_page():
     st.title("📊 Ultimate GSC & Analytics SEO Dashboard")
     st.markdown("---")
 
-def load_google_credentials():
-    """Load and validate Google API credentials from Streamlit secrets"""
-    try:
-        # Check if credentials exist in Streamlit secrets
-        if 'gsc_credentials' not in st.secrets:
-            st.error("GSC credentials not found in secrets. Please configure them in your Streamlit secrets.")
-            st.info("""
-            To configure credentials:
-            1. Local development: Add them to .streamlit/secrets.toml
-            2. Streamlit Cloud: Add them in the app settings under "Secrets"
-            """)
-            return None
-            
-        credentials = st.secrets['gsc_credentials']
+def authenticate():
+    """Handle Google OAuth authentication"""
+    if not st.session_state.credentials:
+        st.info("""
+        ### 🔐 Google Search Console Authentication
         
-        # Validate required fields
-        required_fields = ['client_id', 'client_secret', 'redirect_uri']
-        missing_fields = [field for field in required_fields if field not in credentials]
+        Please log in with your Google account that has access to Search Console.
+        You'll be redirected to Google's login page where you can select your account.
+        """)
         
-        if missing_fields:
-            st.error(f"Missing required credentials: {', '.join(missing_fields)}")
-            return None
-            
-        # Build the client config dictionary
-        client_config = {
-            "installed": {
-                "client_id": credentials['client_id'],
-                "client_secret": credentials['client_secret'],
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://accounts.google.com/o/oauth2/token",
-                "redirect_uris": [credentials['redirect_uri']],
-            }
-        }
+        if st.button("🔐 Login with Google"):
+            try:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'client_secrets.json',
+                    scopes=SCOPES
+                )
+                st.session_state.credentials = flow.run_local_server(port=8501)
+                st.experimental_rerun()
+            except Exception as e:
+                st.error(f"Authentication error: {str(e)}")
+                st.info("Please make sure you have the correct permissions for Google Search Console.")
+    else:
+        st.success("✓ Successfully logged in")
         
-        return client_config
-        
-    except Exception as e:
-        st.error(f"Error loading credentials: {str(e)}")
-        return None
+        with st.expander("⚙️ Account Settings"):
+            st.info("If you need to switch to a different Google account, click the Logout button below.")
+            if st.button("🚪 Logout"):
+                st.session_state.credentials = None
+                st.session_state.selected_property = None
+                # Clear other relevant session state variables
+                for key in ['current_urls', 'comparison_enabled', 'sitemap_enabled', 'url_inspection_enabled']:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                st.experimental_rerun()
 
 def get_date_ranges(days: int, periods: int = 1) -> list:
     """Generate date ranges for comparison"""
@@ -190,87 +186,36 @@ def main():
         st.header("Settings")
         
         # Google Authentication
-        if st.session_state.credentials is None:
-            st.info("""
-            ### 🔐 Google Search Console Authentication
-            
-            Please log in with your Google account that has access to Search Console.
-            
-            **Note**: If you need to use a different Google account:
-            1. Click the "Login with Google" button
-            2. Click on "Use another account" in the Google login screen
-            3. Sign in with the account that has GSC access
-            """)
-            
-            if st.button("🔐 Login with Google"):
-                client_config = load_google_credentials()
-                if client_config:
-                    try:
-                        flow = Flow.from_client_config(
-                            client_config,
-                            scopes=SCOPES,
-                            redirect_uri=client_config["installed"]["redirect_uris"][0]
-                        )
-                        # Add prompt parameter to force account selection
-                        auth_url, _ = flow.authorization_url(
-                            prompt="select_account",  # Forces account selection
-                            access_type="offline",    # Gets refresh token
-                            include_granted_scopes="true"  # Includes previously granted scopes
-                        )
-                        st.session_state.flow = flow
-                        
-                        st.markdown("""
-                        #### Click below to login with Google:
-                        *If you need to use a different account, click "Use another account" on the Google login screen.*
-                        """)
-                        st.markdown(f'[Login with Google]({auth_url})')
-                        
-                    except Exception as e:
-                        st.error(f"Authentication error: {str(e)}")
-                        st.info("If you're having trouble, try clearing your browser cookies and cache.")
-        else:
-            st.success("✓ Successfully logged in")
-            
-            # Show logout option with additional info
-            with st.expander("⚙️ Account Settings"):
-                st.info("If you need to switch to a different Google account, click the Logout button below.")
-                if st.button("🚪 Logout"):
-                    st.session_state.credentials = None
-                    st.session_state.selected_property = None
-                    # Clear other relevant session state variables
-                    for key in ['current_urls', 'comparison_enabled', 'sitemap_enabled', 'url_inspection_enabled']:
-                        if key in st.session_state:
-                            del st.session_state[key]
-                    st.experimental_rerun()
-
-            # Optional Features
-            st.subheader("Analysis Options")
-            st.session_state.comparison_enabled = st.checkbox(
-                "Enable Comparison",
-                value=st.session_state.comparison_enabled,
-                help="Compare metrics across multiple time periods"
+        authenticate()
+        
+        # Optional Features
+        st.subheader("Analysis Options")
+        st.session_state.comparison_enabled = st.checkbox(
+            "Enable Comparison",
+            value=st.session_state.comparison_enabled,
+            help="Compare metrics across multiple time periods"
+        )
+        
+        if st.session_state.comparison_enabled:
+            st.session_state.comparison_periods = st.number_input(
+                "Number of periods to compare",
+                min_value=1,
+                max_value=4,
+                value=st.session_state.comparison_periods,
+                help="Compare up to 4 consecutive periods"
             )
-            
-            if st.session_state.comparison_enabled:
-                st.session_state.comparison_periods = st.number_input(
-                    "Number of periods to compare",
-                    min_value=1,
-                    max_value=4,
-                    value=st.session_state.comparison_periods,
-                    help="Compare up to 4 consecutive periods"
-                )
-            
-            st.session_state.sitemap_enabled = st.checkbox(
-                "Enable Sitemap Analysis",
-                value=st.session_state.sitemap_enabled,
-                help="Analyze sitemap data"
-            )
-            
-            st.session_state.url_inspection_enabled = st.checkbox(
-                "Enable URL Inspection",
-                value=st.session_state.url_inspection_enabled,
-                help="Inspect individual URLs"
-            )
+        
+        st.session_state.sitemap_enabled = st.checkbox(
+            "Enable Sitemap Analysis",
+            value=st.session_state.sitemap_enabled,
+            help="Analyze sitemap data"
+        )
+        
+        st.session_state.url_inspection_enabled = st.checkbox(
+            "Enable URL Inspection",
+            value=st.session_state.url_inspection_enabled,
+            help="Inspect individual URLs"
+        )
     
     # Main content
     if st.session_state.credentials is None:
