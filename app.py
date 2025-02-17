@@ -71,23 +71,18 @@ def authenticate():
             try:
                 flow = Flow.from_client_config(
                     {
-                        "web": {
+                        "installed": {
                             "client_id": "1084465226269-2q3gn0u7s3p18e1kqh5ljr1fu8dh57lf.apps.googleusercontent.com",
                             "client_secret": "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",
                             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                            "token_uri": "https://oauth2.googleapis.com/token",
-                            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                            "token_uri": "https://accounts.google.com/o/oauth2/token",
                             "redirect_uris": ["http://localhost:8501"]
                         }
                     },
                     scopes=["https://www.googleapis.com/auth/webmasters"],
                     redirect_uri="http://localhost:8501"
                 )
-                auth_url, _ = flow.authorization_url(
-                    access_type='offline',
-                    include_granted_scopes='true',
-                    prompt='consent'
-                )
+                auth_url, _ = flow.authorization_url(prompt="consent")
                 st.markdown(f'[Click here to login with Google]({auth_url})')
                 st.session_state.flow = flow
             except Exception as e:
@@ -209,12 +204,11 @@ def main():
         # Initialize GSC API
         gsc_api = GSCApi(auth_search_console(
             {
-                "web": {
+                "installed": {
                     "client_id": "1084465226269-2q3gn0u7s3p18e1kqh5ljr1fu8dh57lf.apps.googleusercontent.com",
                     "client_secret": "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",
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token",
-                    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                    "token_uri": "https://accounts.google.com/o/oauth2/token",
                     "redirect_uris": ["http://localhost:8501"]
                 }
             },
