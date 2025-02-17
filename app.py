@@ -63,8 +63,12 @@ def load_config():
     """
     client_config = {
         "installed": {
+            "client_id": "PLACEHOLDER",  # Will be replaced during OAuth flow
+            "project_id": "PLACEHOLDER",
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://accounts.google.com/o/oauth2/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_secret": "PLACEHOLDER",  # Will be replaced during OAuth flow
             "redirect_uris": ["http://localhost:8501"]
         }
     }
